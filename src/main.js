@@ -3,23 +3,6 @@ const WebSocket = require('ws');
 // Setup websocket server for communicating with the panel
 const wss = new WebSocket.Server({ port: 8081 });
 
-/*
-EVENT STRUCTURE
-
-{
-    type: "CONNECT|UPDATE",
-    sessionId: "SESSION_ID",
-    player: "day|night",
-    playerData: {
-        x: 0,
-        y: 0,
-        direction: "UP|DOWN|LEFT|RIGHT",
-        animation: "WALKING|IDLE",
-        state: "ALIVE|DEAD"
-    }
-}
-*/
-
 let sessions = {};
 let wsMap = {};
 
@@ -32,6 +15,7 @@ wss.on('connection', (ws) => {
                 if (!(event.sessionId in sessions)) {
                     console.log("SETTING UP NEW SESSION: " + event.sessionId);
                     sessions[event.sessionId] = {
+                        id: event.sessionId,
                         sessionState: "SETUP",
                         players: {
                             day: {},
@@ -43,7 +27,7 @@ wss.on('connection', (ws) => {
                     return;
                 }
 
-                console.log("CONNECTING TO SESSION: " + event.player);
+                console.log("CONNECTING TO SESSION " + event.sessionId + ": " + event.player);
 
                 sessions[event.sessionId].players[event.player] = event.playerData;
                 sessions[event.sessionId].players[event.player].ws = ws;
@@ -58,19 +42,30 @@ wss.on('connection', (ws) => {
                 break;
         }
 
-        if (sessions[event.sessionId].players.day.ws && sessions[event.sessionId].players.night.ws) {
+        if (sessions[event.sessionId].players.day.ws && sessions[event.sessionId].players.night.ws && sessions[event.sessionId].sessionState !== "PLAYING") {
             console.log("BOTH PLAYERS CONNECTED!");
             sessions[event.sessionId].sessionState = "PLAYING";
+            sessions[event.sessionId].players.day.ws.send(JSON.stringify({
+                type: "READY"
+            }));
+            sessions[event.sessionId].players.night.ws.send(JSON.stringify({
+                type: "READY"
+            }));
         }
     });
 
     ws.on('close', () => {
         let session = wsMap[ws];
-        if (session.players.day.ws && session.players.day.ws !== ws) {
+        if (session.players.day.ws) {
+            console.log("CLOSING DAY");
             session.players.day.ws.close();
         }
-        if (session.players.night.ws && session.players.night.ws !== ws) {
+        if (session.players.night.ws) {
+            console.log("CLOSING NIGHT");
             session.players.night.ws.close();
         }
+        delete sessions[session.id];
     });
 });
+
+console.log("WEB SOCKET SERVER STARTED ON PORT 8081");

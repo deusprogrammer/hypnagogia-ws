@@ -10,6 +10,10 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         const event = JSON.parse(message);
 
+        if (!event.sessionId) {
+            return;
+        }
+
         switch (event.type) {
             case "CONNECT":
                 if (!(event.sessionId in sessions)) {

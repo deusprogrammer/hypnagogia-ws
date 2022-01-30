@@ -44,6 +44,9 @@ wss.on('connection', (ws) => {
 
                 sessions[event.sessionId].players[event.player === "night" ? "day" : "night"].ws.send(JSON.stringify(event));
                 break;
+            case "PING":
+                sessions[event.sessionId].players[event.player].ws.send(JSON.stringify({...event, type: "PONG"}));
+                break;
         }
 
         if (sessions[event.sessionId].players.day.ws && sessions[event.sessionId].players.night.ws && sessions[event.sessionId].sessionState !== "PLAYING") {

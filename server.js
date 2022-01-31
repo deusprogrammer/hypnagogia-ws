@@ -50,6 +50,10 @@ wss.on('connection', (ws) => {
         }
 
         if (sessions[event.sessionId].players.day.ws && sessions[event.sessionId].players.night.ws && sessions[event.sessionId].sessionState !== "PLAYING") {
+            if (!event.sessionId in sessions) {
+                return;
+            }
+
             console.log("BOTH PLAYERS CONNECTED!");
             sessions[event.sessionId].sessionState = "PLAYING";
             sessions[event.sessionId].players.day.ws.send(JSON.stringify({
